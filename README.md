@@ -4,6 +4,7 @@ A comprehensive Laravel package for integrating with PakaiLink Payment Gateway. 
 
 ## Features
 
+- ✅ **Easy Installation** - Install via Composer with automatic service provider discovery
 - ✅ **SNAP Compliant** - Follows Standard National API Payment specification
 - ✅ **Multiple Payment Methods** - VA, QRIS, E-Wallet, Retail, Bank Transfer
 - ✅ **Dual Signature** - RSA-SHA256 (asymmetric) and HMAC-SHA512 (symmetric)
@@ -12,6 +13,7 @@ A comprehensive Laravel package for integrating with PakaiLink Payment Gateway. 
 - ✅ **Comprehensive Logging** - Detailed logging for debugging
 - ✅ **Type Safe** - Full PHP 8.4 type hints and enums
 - ✅ **Exception Handling** - Custom exceptions for different error types
+- ✅ **Flexible Configuration** - Support for both camelCase and snake_case keys
 
 ## Requirements
 
@@ -22,34 +24,42 @@ A comprehensive Laravel package for integrating with PakaiLink Payment Gateway. 
 
 ## Installation
 
-### Step 1: Add Repository to composer.json
+### Step 1: Install Package
 
-Add the local repository to your main project's `composer.json`:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "path",
-            "url": "packages/pakailink/pakailink-sdk"
-        }
-    ]
-}
-```
-
-### Step 2: Install Package
+Install the package via Composer:
 
 ```bash
 composer require pakailink/pakailink-sdk
 ```
 
-### Step 3: Publish Configuration
+The service provider will be automatically discovered and registered by Laravel.
+
+> **Note:** For local development, you may need to add the local repository to your `composer.json`:
+> ```json
+> {
+>     "repositories": [
+>         {
+>             "type": "path",
+>             "url": "packages/pakailink/pakailink-sdk",
+>             "options": {
+>                 "symlink": true
+>             }
+>         }
+>     ]
+> }
+> ```
+
+### Step 2: Publish Configuration
+
+Publish the configuration file to your application:
 
 ```bash
-php artisan vendor:publish --tag=pakailink-config
+php artisan vendor:publish --tag=pakailink
 ```
 
-### Step 4: Configure Environment
+This will create `config/pakailink.php` in your application.
+
+### Step 3: Configure Environment
 
 Add to your `.env` file:
 
@@ -65,7 +75,7 @@ PAKAILINK_PRIVATE_KEY_PATH=storage/keys/pakailink_private.pem
 PAKAILINK_PUBLIC_KEY_PATH=storage/keys/pakailink_public.pem
 ```
 
-### Step 5: Generate RSA Keys
+### Step 4: Generate RSA Keys
 
 ```bash
 # Generate private key
@@ -78,6 +88,22 @@ openssl rsa -in storage/keys/pakailink_private.pem -pubout -out storage/keys/pak
 chmod 400 storage/keys/pakailink_private.pem
 chmod 444 storage/keys/pakailink_public.pem
 ```
+
+## Quick Start
+
+After installation and configuration, you can immediately start using the SDK:
+
+```php
+use PakaiLink\Services\PakaiLinkService;
+
+// Get account balance
+$service = app(PakaiLinkService::class);
+$balance = $service->getBalance();
+
+echo "Current Balance: " . $balance['accountInfos'][0]['balanceAmount']['value'];
+```
+
+For specific payment methods, see the detailed usage examples below.
 
 ## Usage
 
@@ -137,11 +163,14 @@ $service = app(PakaiLinkQrisService::class);
 
 // Generate QRIS QR Code
 $data = GenerateQrisData::from([
+    'merchant_id' => config('pakailink.credentials.merchant_id'),
     'amount' => 50000,
+    'terminal_id' => 'TERM001', // Optional
+    'validity_period' => '30', // Optional: minutes or Carbon instance
 ]);
 
 $response = $service->generateQris($data);
-// Returns: ['qrContent' => '...', 'nmid' => '...', ...]
+// Returns: ['qrContent' => '...', 'originalPartnerReferenceNo' => '...', ...]
 
 // Inquiry QRIS Status
 $status = $service->inquiryStatus($partnerReferenceNo);
